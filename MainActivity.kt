@@ -1,6 +1,8 @@
-
 package com.example.kalkulator
 
+// import.kotlin.math.* to sie przyda do sin() i cos() to zostawaim tobie
+// dodaj przyciki i git bedzie moze zrobisz bo jak tera dodam to sie
+// bede bawil w ukladnie tego jakos ladnie a mi sie juz nie chce
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,130 +12,191 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Stack
 
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             Calc()
         }
     }
+}
 
-    @Composable
-    fun Calc(){
+@Composable
+fun Calc() {
 
-        val s: MutableState<String> = remember{ mutableStateOf("0") }
-        val op: MutableState<Char> = remember{ mutableStateOf('+') }
-        val buf: MutableIntState = remember{ mutableIntStateOf(0) }
+    val expression = remember { mutableStateOf("") }
 
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ){
+    fun add(x: String) {
+        expression.value += x
+    }
 
-            Row{
-                Text(
-                    modifier = Modifier.fillMaxWidth(0.5f),
-                    text = s.value,
-                    fontSize = 20.sp
-                )
-            }
+    fun clear() {
+        expression.value = ""
+    }
 
-            Row{
+    fun calculate() {
+        try {
+            val result = eval(expression.value)
+            expression.value = result.toString()
+        } catch (e: Exception) {
+            expression.value = "Error"
+        }
+    }
 
-                Button(onClick = { if (s.value == "0") s.value = "1" else s.value += "1" }) {
-                    Text(text = "1")
-                }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
 
-                Button(onClick = { if(s.value == "0") s.value="2" else s.value+="2" }) {
-                    Text("2")
-                }
+        Text(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp),
+            text = if (expression.value.isEmpty()) "0" else expression.value,
+            fontSize = 32.sp
+        )
 
-                Button(onClick = { if(s.value == "0") s.value="3" else s.value+="3" }) {
-                    Text("3")
-                }
-
-                Button(onClick = {
-                    op.value='+'
-                    buf.intValue = s.value.toInt()
-                    s.value="0"
-                }) {
-                    Text("+")
-                }
-            }
-
-            Row{
-
-                Button(onClick = { if(s.value == "0") s.value="4" else s.value+="4" }) {
-                    Text("4")
-                }
-
-                Button(onClick = { if(s.value == "0") s.value="5" else s.value+="5" }) {
-                    Text("5")
-                }
-
-                Button(onClick = { if(s.value == "0") s.value="6" else s.value+="6" }) {
-                    Text("6")
-                }
-
-                Button(onClick = {
-                    op.value='-'
-                    buf.intValue = s.value.toInt()
-                    s.value="0"
-                }) {
-                    Text("-")
-                }
-            }
-
-            Row{
-
-                Button(onClick = { if(s.value == "0") s.value="7" else s.value+="7" }) {
-                    Text("7")
-                }
-
-                Button(onClick = { if(s.value == "0") s.value="8" else s.value+="8" }) {
-                    Text("8")
-                }
-
-                Button(onClick = { if(s.value == "0") s.value="9" else s.value+="9" }) {
-                    Text("9")
-                }
-
-                Button(onClick = {
-                    op.value='*'
-                    buf.intValue = s.value.toInt()
-                    s.value="0"
-                }) {
-                    Text("*")
-                }
-            }
-
-            Row{
-
-                Button(onClick = { s.value="0"; buf.intValue=0 }) {
-                    Text("C")
-                }
-
-                Button(
-                    onClick = {
-                        val current = s.value.toInt()
-                        val result = when(op.value){
-                            '+' -> buf.intValue + current
-                            '-' -> buf.intValue - current
-                            '*' -> buf.intValue * current
-                            else -> current
-                        }
-                        s.value = result.toString()
-                        buf.intValue = result
-                    },
-                    modifier = Modifier.fillMaxWidth(0.5f)
-                ) {
-                    Text("=")
-                }
+        @Composable
+        fun btn(
+            text: String,
+            modifier: Modifier = Modifier.weight(1f),
+            onClick: () -> Unit
+        ) {
+            Button(
+                onClick = onClick,
+                modifier = modifier.padding(4.dp)
+            ) {
+                Text(text)
             }
         }
+
+        Row(Modifier.fillMaxWidth()) {
+            btn("1") { add("1") }
+            btn("2") { add("2") }
+            btn("3") { add("3") }
+            btn("+") { add("+") }
+        }
+
+        Row(Modifier.fillMaxWidth()) {
+            btn("4") { add("4") }
+            btn("5") { add("5") }
+            btn("6") { add("6") }
+            btn("-") { add("-") }
+        }
+
+        Row(Modifier.fillMaxWidth()) {
+            btn("7") { add("7") }
+            btn("8") { add("8") }
+            btn("9") { add("9") }
+            btn("*") { add("*") }
+        }
+
+        Row(Modifier.fillMaxWidth()) {
+            btn("0") { add("0") }
+            btn(".") { add(".") }
+            btn("(") { add("(") }
+            btn(")") { add(")") }
+        }
+
+        Row(Modifier.fillMaxWidth()) {
+            btn("/") { add("/") }
+            btn("C") { clear() }
+            btn("=") { calculate() }
+        }
+    }
+}
+
+// -------- ale OP kalkulator matematyczny twoja jebana mac --------
+
+//expression przechowuje całe działanie w jednej lini spoko ok ok
+
+
+/*
+ jak szukalem po necie to znalazlem kod i ogarnoalem te nawiasy w sensie kolejnosc dzialan
+ czyba jest dobrze zrobiane ale nwm na dole to masz eval
+ Obsługuje:
+ + - * / oraz nawiasy
+*/
+
+fun eval(expression: String): Double {
+    val nums = Stack<Double>()
+    val ops = Stack<Char>()
+
+    var i = 0
+    while (i < expression.length) {
+        when {
+            expression[i].isDigit() || expression[i] == '.' -> {
+                var num = ""
+                while (i < expression.length &&
+                    (expression[i].isDigit() || expression[i] == '.')
+                ) {
+                    num += expression[i]
+                    i++
+                }
+                nums.push(num.toDouble())
+                i--
+            }
+
+            expression[i] == '(' -> ops.push(expression[i])
+
+            expression[i] == ')' -> {
+                while (ops.peek() != '(') {
+                    nums.push(applyOp(ops.pop(), nums.pop(), nums.pop()))
+                }
+                ops.pop()
+            }
+
+            expression[i] in charArrayOf('+', '-', '*', '/') -> {
+                while (
+                    ops.isNotEmpty() &&
+                    precedence(ops.peek()) >= precedence(expression[i])
+
+
+                // zobacz to ^^^ i kometarz na dole tam wyjasniam
+
+
+                ) {
+                    nums.push(applyOp(ops.pop(), nums.pop(), nums.pop()))
+                }
+                ops.push(expression[i])
+            }
+        }
+        i++
+    }
+
+    while (ops.isNotEmpty()) {
+        nums.push(applyOp(ops.pop(), nums.pop(), nums.pop()))
+    }
+
+    return nums.pop()
+}
+/*
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ to oraz to co jest pod spodem  odpowiada za to ze nawiasy, * , /, sa wykonywanie
+ przed dodawanie i odejmowaniem jakos to dziala i w koncu nie wyjebao bledu wiec KURWA NIE TYKAC
+ bo sie rozjebie znowu thx :-) (UwU)
+*/
+fun precedence(op: Char): Int {
+    return when (op) {
+        '+', '-' -> 1
+        '*', '/' -> 2
+        else -> 0
+    }
+}
+
+fun applyOp(op: Char, b: Double, a: Double): Double { //
+    return when (op) {
+        '+' -> a + b
+        '-' -> a - b
+        '*' -> a * b
+        '/' -> a / b
+        else -> 0.0
     }
 }

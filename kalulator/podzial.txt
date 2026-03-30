@@ -1,0 +1,3 @@
+kamyk: gui dodać nawiasy, kropke, funkcję wybrane przez ciebie,
+
+kajmus: implementacja logika obsługi nawiasów i działań

@@ -1,0 +1,9 @@
+do zrobienia: 
+GUI: (guziki (X) , canvas, wyswietlacz dla wartosci delty i pierwiastków)
+Funkcje obliczajace delte i miejsca zerowe, schemat Hornera  
+Parser do plota ( po klikneciu guzika plot interpretuje wzor wejsciowy wrzuca go do odpowiedniej funkcji podobnej do eval, zamiast podac wynik rysuje wykres i daje miejsca zerowe i wykres )
+
+
+KamYk: PASER (robic na liscie)  
+
+Kajmus:  GUI, FUNKCJE

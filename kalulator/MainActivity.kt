@@ -1,4 +1,4 @@
-package com.example.kalkulator
+package com.example.calc1
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Stack
 import kotlin.math.*
+import android.util.Log
+//import net.objecthunter.exp4j.ExpressionBuilder
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,6 +39,8 @@ fun Calc() {
     val deltaResult = remember { mutableStateOf("-") }
     val rootsResult = remember { mutableStateOf("-") }
     val textMeasurer = rememberTextMeasurer()
+    val graphStart = remember { mutableStateOf("-20")}
+    val graphEnd = remember {mutableStateOf("20")}
 
     fun add(x: String) { expression.value += x }
 
@@ -45,13 +49,24 @@ fun Calc() {
         plotExpression.value = ""
         deltaResult.value = "-"
         rootsResult.value = "-"
+        graphStart.value = "-20"
+        graphEnd.value = "20"
     }
 
     fun calculatePlot() {
         try {
             val raw = expression.value.replace("f(x)=", "").replace("y=", "").replace(" ", "")
-            plotExpression.value = raw
-
+            val parts = raw.split(",")
+//            Log.d("DEBUG", "wartość: $parts")
+            if (parts.isNotEmpty() && parts.size == 3) {
+                plotExpression.value = parts[0]
+                if (parts[1].toDouble() < parts[2].toDouble()){
+                    graphStart.value = parts[1]
+                    graphEnd.value = parts[2]
+                }
+            }else {
+                plotExpression.value = raw
+            }
             val parsed = parseQuadratic(raw)
             if (parsed != null) {
                 val (a, b, c) = parsed
@@ -69,43 +84,60 @@ fun Calc() {
 
     Column(modifier = Modifier.fillMaxSize().padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Canvas(modifier = Modifier.fillMaxWidth().weight(1f).background(Color(0xFFF0F0F0))) {
-            val centerX = size.width / 2
-            val centerY = size.height / 2
-            val scale = 40f // Skala 40px
-            drawLine(Color.LightGray, Offset(0f, centerY), Offset(size.width, centerY), 2f)
-            drawLine(Color.LightGray, Offset(centerX, 0f), Offset(centerX, size.height), 2f)
+            val yMin = -15.0
+            val yMax = 15.0
+            val yRange = yMax - yMin
 
             if (plotExpression.value.isNotEmpty()) {
-                val points = mutableListOf<Offset>()
-                // Zakres od -20 do 20
-                for (i in -200..200) {
-                    val x = i / 10.0
-                    try {
-                        val substituted = plotExpression.value.replace("x", "($x)")
-                        val y = eval(substituted)
+                val xMin = graphStart.value.toDoubleOrNull() ?: -20.0
+                val xMax = graphEnd.value.toDoubleOrNull() ?: 20.0
+                val xRange = xMax - xMin
 
-                        if (!y.isNaN() && !y.isInfinite()) {
-                            val px = centerX + (x.toFloat() * scale)
-                            val py = centerY - (y.toFloat() * scale)
+                if (xRange != 0.0 && yRange != 0.0) {
+                    fun mapX(x: Double) = ((x - xMin) / xRange * size.width).toFloat()
+                    fun mapY(y: Double) = (size.height - (y - yMin) / yRange * size.height).toFloat()
 
-                            if (px in 0f..size.width && py in 0f..size.height) {
-                                points.add(Offset(px, py))
+                    if (yMin <= 0.0 && yMax >= 0.0) {
+                        val py = mapY(0.0)
+                        drawLine(Color.LightGray, Offset(0f, py), Offset(size.width, py), 2f)
+                    }
+                    if (xMin <= 0.0 && xMax >= 0.0) {
+                        val px = mapX(0.0)
+                        drawLine(Color.LightGray, Offset(px, 0f), Offset(px, size.height), 2f)
+                    }
 
+                    val steps = 500
+                    val step = xRange / steps
+                    val points = mutableListOf<Offset>()
+
+                    for (i in 0..steps) {
+                        val x = xMin + i * step
+                        try {
+                            val xStr = String.format(java.util.Locale.US, "%.10f", x)
+                                .trimEnd('0')
+                                .trimEnd('.')
+                            val substituted = plotExpression.value.replace("x", "($xStr)")
+                            val y = eval(substituted)
+
+                            if (!y.isNaN() && !y.isInfinite()) {
+                                points.add(Offset(mapX(x), mapY(y)))
                             }
-                        }
-                    } catch (e: Exception) {}
+                        } catch (e: Exception) { }
+                    }
+
+                    for (i in 0 until points.size - 1) {
+                        drawLine(Color.Blue, points[i], points[i + 1], strokeWidth = 3f)
+                    }
                 }
-                if (points.size > 1) drawPoints(points, PointMode.Polygon, Color.Blue, 4f)
             }
-
-            drawText(textMeasurer, "Wykres f(x)", topLeft = Offset(10f, 10f), style = TextStyle(fontSize = 12.sp))
+            drawText(textMeasurer, "Wykres f(x)= ${expression.value}", topLeft = Offset(10f, 10f), style = TextStyle(fontSize = 12.sp))
         }
 
-        // 2. PANEL INFORMACYJNY (Delta i MZ)
-        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Δ: ${deltaResult.value}", fontWeight = FontWeight.Bold, color = Color.Red)
-            Text("Miejsca: ${rootsResult.value}", fontSize = 13.sp)
-        }
+        // 2. PANEL INFORMACYJNY (Delta i MZ) nie działa w zakresach
+//        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+//            Text("Δ: ${deltaResult.value}", fontWeight = FontWeight.Bold, color = Color.Red)
+//            Text("Miejsca: ${rootsResult.value}", fontSize = 13.sp)
+//        }
 
 
         Text(
@@ -130,36 +162,32 @@ fun Calc() {
             listOf("4", "5", "6", "*"),
             listOf("1", "2", "3", "-"),
             listOf("0", ".", "(", ")"),
-            listOf("f", "x", "y=", "="),
-            listOf("sin", "cos", "^2", "+")
+            listOf("y=", "x", ",", "^"),
+            listOf("sin", "cos", "log", "+")
         )
 
         rows.forEach { row ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 row.forEach { char ->
                     Btn(char){
-                        when (char) {
-                            "=" -> {
-                                try{
-                                    val cleanExpr = expression.value.replace("f(x)=", "").replace("y=","")
-                                    val result = eval(cleanExpr)
-                                    expression.value = result.toString()
-                                }catch (e: Exception){
-                                    expression.value = "Bład"
-                                }
-                            }
-                            "f" -> add("f(x)=")
-                            else -> add(char)
-
+                            add(char)
                         }
-
                     }
                 }
             }
-        }
+
         Row(modifier = Modifier.fillMaxWidth()) {
             Btn("C", color = Color.Gray) { clear() }
-            Btn("PLOT", flex = 2f) { calculatePlot() }
+            Btn("PLOT",) { calculatePlot() }
+            Btn("=") {
+                try{
+                    val cleanExpr = expression.value.replace("f(x)=", "").replace("y=","")
+                    val result = eval(cleanExpr)
+                    expression.value = result.toString()
+                }catch (e: Exception){
+                    expression.value = "Bład"
+                }
+            }
         }
     }
 }
@@ -171,8 +199,8 @@ fun eval(expr: String): Double {
 
     fun applyOp() {
         val op = ops.pop()
-        if (op == "sin" || op == "cos") {
-            nums.push(if (op == "sin") sin(nums.pop()) else cos(nums.pop()))
+        if (op == "sin" || op == "cos" || op == "log") {
+            nums.push(if (op == "sin") {sin(nums.pop())} else if (op == "cos") {cos(nums.pop())} else {log10(nums.pop())})
         } else {
             val b = nums.pop(); val a = nums.pop()
             nums.push(when(op) {
